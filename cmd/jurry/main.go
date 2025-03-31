@@ -6,6 +6,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"jurry_dev/internal/config"
 	"jurry_dev/internal/http-server/handler/auth/login"
+	"jurry_dev/internal/http-server/handler/auth/register"
 	"jurry_dev/internal/lib/logger/sl"
 	"jurry_dev/internal/storage/sqlite"
 	"log/slog"
@@ -41,6 +42,7 @@ func main() {
 	router.Use(middleware.URLFormat)
 
 	router.Post("/api/login", login.New(log, storage))
+	router.Post("/api/register", register.New(log, storage))
 
 	log.Info("starting server", slog.String("address", cfg.Address))
 

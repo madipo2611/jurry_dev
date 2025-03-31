@@ -22,8 +22,8 @@ func New(storagePath string) (*Storage, error) {
 
 	st, err := db.Prepare(`
 	CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name VARCHAR(100),
     login VARCHAR(50) NOT NULL UNIQUE,
     password CHAR(120) NOT NULL,
     date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -32,7 +32,7 @@ func New(storagePath string) (*Storage, error) {
     role VARCHAR(10) NOT NULL DEFAULT 'normal', -- Изменено с enum на varchar
     last_seen TIMESTAMP NULL DEFAULT NULL,
     gender VARCHAR(50) NOT NULL,
-    language VARCHAR(10) NOT NULL,
+    language VARCHAR(10) NOT NULL DEFAULT 'en',
     active_status_online VARCHAR(3) NOT NULL DEFAULT 'yes', -- Изменено с enum на varchar
     posts_privacy TINYINT(1) NOT NULL DEFAULT 1,
     allow_dm TINYINT(1) NOT NULL DEFAULT 1,
@@ -49,41 +49,59 @@ func New(storagePath string) (*Storage, error) {
 	return &Storage{db: db}, nil
 }
 
-func (s *Storage) Register(urlToSave string, alias string) (int64, error) {
-	const op = "storage.sqlite.SaveURL"
-
-	stmt, err := s.db.Prepare("INSERT INTO users(login, password) VALUES(?, ?)")
-	if err != nil {
-		return 0, fmt.Errorf("%s: %w", op, err)
-	}
-	res, err := stmt.Exec(urlToSave, alias)
-	if err != nil {
-		return 0, fmt.Errorf("%s: %w", op, err)
-	}
-	id, err := res.LastInsertId()
-	if err != nil {
-		return 0, fmt.Errorf("%s: failed to get last insert id: %w", op, err)
-	}
-
-	return id, nil
-}
-
-func (s *Storage) Login(login string, password string) (bool, error) {
+func (s *Storage) Password(login string) (string, error) {
 	const op = "storage.sqlite.Login"
 
-	stmt, err := s.db.Prepare("SELECT login, password FROM users WHERE login = ? AND password = ?;")
+	stmt, err := s.db.Prepare("SELECT password FROM users WHERE login = ?;")
+	if err != nil {
+		return "", fmt.Errorf("%s: %w", op, err)
+	}
+	var dbPass string
+
+	err = stmt.QueryRow(login).Scan(&dbPass)
+	if errors.Is(err, sql.ErrNoRows) {
+		fmt.Errorf("Ошибка: %s: %w", op, err)
+		return "", storage.ErrLoginNotFound
+	}
+	if err != nil {
+		fmt.Errorf("login error: %s, %s", dbPass)
+		return "", fmt.Errorf("%s: %w", op, err)
+	}
+	return dbPass, nil
+
+}
+
+func (s *Storage) Login(login string) (string, error) {
+	const op = "storage.sqlite.Login"
+
+	stmt, err := s.db.Prepare("SELECT password FROM users WHERE login = ?;")
+	if err != nil {
+		return "", fmt.Errorf("%s: %w", op, err)
+	}
+	var dbPass string
+
+	err = stmt.QueryRow(login).Scan(&dbPass)
+	if errors.Is(err, sql.ErrNoRows) {
+		fmt.Errorf("Ошибка: %s: %w", op, err)
+		return "", storage.ErrLoginNotFound
+	}
+	if err != nil {
+		fmt.Errorf("login error: %s, %s", dbPass)
+		return "", fmt.Errorf("%s: %w", op, err)
+	}
+	return dbPass, nil
+
+}
+
+func (s *Storage) Register(login string, password string, gender string) (bool, error) {
+	const op = "storage.sqlite.Register"
+
+	stmt, err := s.db.Prepare("INSERT INTO users(login, password, gender) VALUES(?, ?, ?)")
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
-	var dbLogin, dbPass string
-
-	err = stmt.QueryRow(login, password).Scan(&dbLogin, &dbPass)
-	if errors.Is(err, sql.ErrNoRows) {
-		fmt.Errorf("Ошибка: %s: %w", op, err)
-		return false, storage.ErrLoginNotFound
-	}
+	_, err = stmt.Exec(login, password, gender)
 	if err != nil {
-		fmt.Errorf("login error: %s, %s", dbLogin, dbPass)
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
 	return true, nil

@@ -1,15 +1,19 @@
 package login
 
 import (
+	"encoding/hex"
 	"errors"
+	"fmt"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
 	resp "jurry_dev/internal/lib/api/response"
+	"jurry_dev/internal/lib/argon"
 	"jurry_dev/internal/lib/logger/sl"
 	"jurry_dev/internal/lib/session"
 	"jurry_dev/internal/storage"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -25,7 +29,11 @@ type Response struct {
 }
 
 type Login interface {
-	Login(login string, password string) (bool, error)
+	Login(login string) (string, error)
+}
+
+type PassDB interface {
+	PassDB(login string) (string, error)
 }
 
 func New(log *slog.Logger, logins Login) http.HandlerFunc {
@@ -51,7 +59,31 @@ func New(log *slog.Logger, logins Login) http.HandlerFunc {
 		}
 		log.Info("request body decoded", slog.Any("request", req))
 
-		auth, err := logins.Login(req.Login, req.Password)
+		passDB, err := logins.Login(req.Login)
+		if err != nil {
+			log.Error("Login not exists", sl.Err(err))
+			w.WriteHeader(http.StatusForbidden)
+			render.JSON(w, r, resp.Error("Login not exists"))
+			return
+		}
+
+		hashDec := strings.Split(passDB, ".") // Декодируем строку
+		salt, err := hex.DecodeString(hashDec[1])
+		if err != nil {
+			fmt.Println("hash decode", salt)
+			return
+		}
+
+		hash, err := hex.DecodeString(hashDec[0])
+		if err != nil {
+			fmt.Println("hash decode", hash)
+			return
+		}
+
+		argon := argon.NewArgonHash(2, 32, 20*1024, 64, 4)
+		reqPass := []byte(req.Password)
+		err = argon.Compare(hash, salt, reqPass)
+
 		if errors.Is(err, storage.ErrLoginNotFound) {
 			log.Error("login or password not found", sl.Err(err))
 			w.WriteHeader(http.StatusForbidden)
@@ -64,11 +96,7 @@ func New(log *slog.Logger, logins Login) http.HandlerFunc {
 			render.JSON(w, r, resp.Error("authorization error"))
 			return
 		}
-		if auth == false {
-			w.WriteHeader(http.StatusForbidden)
-			render.JSON(w, r, resp.Error("invalid username or password"))
-			return
-		}
+
 		sessionId := inMemorySession.SetLogin(req.Login)
 		log.Info("sessionId set", slog.String("sessionId", sessionId))
 		cookie := &http.Cookie{
