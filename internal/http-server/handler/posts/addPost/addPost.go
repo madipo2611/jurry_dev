@@ -37,7 +37,6 @@ func New(log *slog.Logger, addPost *sqlite.Storage) http.HandlerFunc {
 
 		const op = "handler.posts.addPost.New"
 		const COOKIE_NAME = "sessionId"
-		inMemorySession := session.NewSession()
 
 		var req Request
 		//распарсить запрос
@@ -51,10 +50,9 @@ func New(log *slog.Logger, addPost *sqlite.Storage) http.HandlerFunc {
 		if strings.HasPrefix(req.Image, "data:image/jpeg;base64,") {
 			req.Image = strings.TrimPrefix(req.Image, "data:image/jpeg;base64,")
 		}
-		log.Info("request body decoded", slog.Any("request", req))
 
 		cookie, _ := r.Cookie(COOKIE_NAME)
-		_, userID := inMemorySession.Get(cookie.Value)
+		_, userID := session.GlobalSession.Get(cookie.Value)
 
 		imgBase64, err := base64.StdEncoding.DecodeString(req.Image)
 		if err != nil {
@@ -63,10 +61,11 @@ func New(log *slog.Logger, addPost *sqlite.Storage) http.HandlerFunc {
 			render.JSON(w, r, resp.Error("failed to decode image"))
 			return
 		}
-
+		log.Info("userID", slog.Any("serID :", userID))
 		randName := utils.GenerateId()
+		currentDate := time.Now().Format("2006-01-02")
 
-		upPath := fmt.Sprintf("./uploads/%d/%d", time.Now().Format("2006-01-02"), userID)
+		upPath := fmt.Sprintf("./uploads/%s/%d", currentDate, userID)
 
 		err = os.MkdirAll(filepath.Dir(upPath), os.ModePerm)
 		if err != nil {

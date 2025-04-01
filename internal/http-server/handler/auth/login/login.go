@@ -17,8 +17,6 @@ import (
 	"time"
 )
 
-var inMemorySession *session.Session
-
 type Request struct {
 	Login    string `json:"login"`
 	Password string `json:"password"`
@@ -29,15 +27,16 @@ type Response struct {
 }
 
 type Login interface {
-	Login(login string) (string, string, error)
+	Login(login string) (string, int, error)
 }
 
 func New(log *slog.Logger, logins Login) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
+		session.InitGlobalSession()
+
 		const op = "handler.auth.login.New"
 		const COOKIE_NAME = "sessionId"
-		inMemorySession = session.NewSession()
 		log = log.With(
 			slog.String("op", op),
 			slog.String("request_id", middleware.GetReqID(r.Context())),
@@ -94,8 +93,8 @@ func New(log *slog.Logger, logins Login) http.HandlerFunc {
 			render.JSON(w, r, resp.Error("authorization error"))
 			return
 		}
-
-		sessionId := inMemorySession.SetLogin(req.Login, userID)
+		log.Info("userID", slog.Any(" :", userID))
+		sessionId := session.GlobalSession.SetLogin(req.Login, userID)
 		log.Info("sessionId set", slog.String("sessionId", sessionId))
 		cookie := &http.Cookie{
 			Name:    COOKIE_NAME,

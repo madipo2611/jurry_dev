@@ -85,7 +85,7 @@ func setupLogger(env string) *slog.Logger {
 
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000") // Замените на ваш фронтенд
+		w.Header().Set("Access-Control-Allow-Origin", "http://tailly.ru") // Замените на ваш фронтенд
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 

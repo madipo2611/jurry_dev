@@ -29,23 +29,24 @@ func New(ps string) (*Storage, error) {
 	return &Storage{db: db}, nil
 }
 
-func (s *Storage) Login(login string) (string, string, error) {
+func (s *Storage) Login(login string) (string, int, error) {
 	const op = "storage.sqlite.Login"
 
 	stmt, err := s.db.Prepare("SELECT password, id FROM users WHERE login = $1;")
 	if err != nil {
-		return "", "", fmt.Errorf("%s: %w", op, err)
+		return "", 0, fmt.Errorf("%s: %w", op, err)
 	}
-	var dbPass, userID string
+	var dbPass string
+	var userID int
 
 	err = stmt.QueryRow(login).Scan(&dbPass, &userID)
 	if errors.Is(err, sql.ErrNoRows) {
 		fmt.Errorf("Ошибка: %s: %w", op, err)
-		return "", "", storage.ErrLoginNotFound
+		return "", 0, storage.ErrLoginNotFound
 	}
 	if err != nil {
 		fmt.Errorf("login error: %s, %s", dbPass)
-		return "", "", fmt.Errorf("%s: %w", op, err)
+		return "", 0, fmt.Errorf("%s: %w", op, err)
 	}
 	return dbPass, userID, nil
 
@@ -66,7 +67,7 @@ func (s *Storage) Register(login string, password string, gender string) (bool, 
 
 }
 
-func (s *Storage) AddPost(text string, image string, user string) (bool, error) {
+func (s *Storage) AddPost(text string, image string, user int) (bool, error) {
 	const op = "storage.sqlite.Register"
 
 	stmt, err := s.db.Prepare("INSERT INTO posts(text, image, userID) VALUES($1, $2, $3)")
