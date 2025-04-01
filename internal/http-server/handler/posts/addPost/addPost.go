@@ -14,7 +14,6 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 )
@@ -67,7 +66,7 @@ func New(log *slog.Logger, addPost *sqlite.Storage) http.HandlerFunc {
 
 		upPath := fmt.Sprintf("./uploads/%s/%d", currentDate, userID)
 
-		err = os.MkdirAll(filepath.Dir(upPath), os.ModePerm)
+		err = os.MkdirAll(upPath, os.ModePerm)
 		if err != nil {
 			log.Error("failed to create directory", sl.Err(err))
 			w.WriteHeader(http.StatusBadRequest)
