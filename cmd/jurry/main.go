@@ -8,6 +8,7 @@ import (
 	"jurry_dev/internal/http-server/handler/auth/login"
 	"jurry_dev/internal/http-server/handler/auth/register"
 	"jurry_dev/internal/http-server/handler/checkauth"
+	"jurry_dev/internal/http-server/handler/logout"
 	"jurry_dev/internal/http-server/handler/posts/addPost"
 	"jurry_dev/internal/lib/logger/sl"
 	"jurry_dev/internal/storage/sqlite"
@@ -48,6 +49,7 @@ func main() {
 	router.Post("/api/register", register.New(log, storage))
 	router.Post("/api/post", addPost.New(log, storage))
 	router.Post("/api/checkauth", checkauth.New(log))
+	router.Post("/api/logout", logout.New(log))
 
 	log.Info("starting server", slog.String("address", cfg.Address))
 
@@ -87,7 +89,7 @@ func setupLogger(env string) *slog.Logger {
 
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*") // Замените на ваш фронтенд
+		w.Header().Set("Access-Control-Allow-Origin", "http://tailly.ru") // Замените на ваш фронтенд
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
