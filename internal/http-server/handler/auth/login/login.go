@@ -29,11 +29,7 @@ type Response struct {
 }
 
 type Login interface {
-	Login(login string) (string, error)
-}
-
-type PassDB interface {
-	PassDB(login string) (string, error)
+	Login(login string) (string, string, error)
 }
 
 func New(log *slog.Logger, logins Login) http.HandlerFunc {
@@ -59,7 +55,7 @@ func New(log *slog.Logger, logins Login) http.HandlerFunc {
 		}
 		log.Info("request body decoded", slog.Any("request", req))
 
-		passDB, err := logins.Login(req.Login)
+		passDB, userID, err := logins.Login(req.Login)
 		if err != nil {
 			log.Error("Login not exists", sl.Err(err))
 			w.WriteHeader(http.StatusForbidden)
@@ -67,10 +63,12 @@ func New(log *slog.Logger, logins Login) http.HandlerFunc {
 			return
 		}
 
-		hashDec := strings.Split(passDB, ".") // Декодируем строку
+		pass1 := strings.ReplaceAll(passDB, " ", "")
+		hashDec := strings.Split(pass1, ".") // Декодируем строку
 		salt, err := hex.DecodeString(hashDec[1])
 		if err != nil {
-			fmt.Println("hash decode", salt)
+			fmt.Println("salt decode", err)
+			fmt.Println("passDB: ", passDB)
 			return
 		}
 
@@ -97,7 +95,7 @@ func New(log *slog.Logger, logins Login) http.HandlerFunc {
 			return
 		}
 
-		sessionId := inMemorySession.SetLogin(req.Login)
+		sessionId := inMemorySession.SetLogin(req.Login, userID)
 		log.Info("sessionId set", slog.String("sessionId", sessionId))
 		cookie := &http.Cookie{
 			Name:    COOKIE_NAME,

@@ -5,7 +5,8 @@ import (
 )
 
 type sessionData struct {
-	Login string
+	Login  string
+	UserID string
 }
 type Session struct {
 	data map[string]*sessionData
@@ -17,18 +18,18 @@ func NewSession() *Session {
 	return s
 }
 
-func (s *Session) SetLogin(login string) string {
+func (s *Session) SetLogin(login, userID string) string {
 	sessionId := utils.GenerateId()
-	data := &sessionData{Login: login}
+	data := &sessionData{Login: login, UserID: userID}
 	s.data[sessionId] = data
 	return sessionId
 
 }
 
-func (s *Session) Get(sessionId string) string {
+func (s *Session) Get(sessionId string) (string, string) {
 	data := s.data[sessionId]
 	if data == nil {
-		return ""
+		return "", ""
 	}
-	return data.Login
+	return data.Login, data.UserID
 }

@@ -7,6 +7,7 @@ import (
 	"jurry_dev/internal/config"
 	"jurry_dev/internal/http-server/handler/auth/login"
 	"jurry_dev/internal/http-server/handler/auth/register"
+	"jurry_dev/internal/http-server/handler/posts/addPost"
 	"jurry_dev/internal/lib/logger/sl"
 	"jurry_dev/internal/storage/sqlite"
 	"log/slog"
@@ -28,7 +29,7 @@ func main() {
 	log.Info("starting server", slog.String("env", cfg.Env))
 	log.Debug("debug messages are enabled")
 
-	storage, err := sqlite.New(cfg.StoragePath)
+	storage, err := sqlite.New(cfg.PS)
 	if err != nil {
 		log.Error("failed to init storage", sl.Err(err))
 	}
@@ -40,9 +41,11 @@ func main() {
 	router.Use(middleware.Logger)
 	router.Use(middleware.Recoverer)
 	router.Use(middleware.URLFormat)
+	router.Use(corsMiddleware)
 
 	router.Post("/api/login", login.New(log, storage))
 	router.Post("/api/register", register.New(log, storage))
+	router.Post("/api/post", addPost.New(log, storage))
 
 	log.Info("starting server", slog.String("address", cfg.Address))
 
@@ -54,6 +57,7 @@ func main() {
 		IdleTimeout:  cfg.HTTPServer.IdleTimeout,
 	}
 	//TODO: run server
+
 	if err := srv.ListenAndServe(); err != nil {
 		log.Error("failed to start server", sl.Err(err))
 	}
@@ -77,4 +81,20 @@ func setupLogger(env string) *slog.Logger {
 		)
 	}
 	return log
+}
+
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000") // Замените на ваш фронтенд
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		// Обработка preflight запросов
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }

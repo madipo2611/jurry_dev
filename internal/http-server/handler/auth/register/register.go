@@ -3,6 +3,7 @@ package register
 import (
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"github.com/go-chi/render"
 	resp "jurry_dev/internal/lib/api/response"
 	"jurry_dev/internal/lib/argon"
@@ -57,9 +58,7 @@ func New(log *slog.Logger, register Register) http.HandlerFunc {
 		saltHex := hex.EncodeToString(hashSalt.Salt)
 
 		password := hashHex + "." + saltHex
-		log.Info("hash", slog.Any("hash", hashSalt.Hash))
-		log.Info("salt", slog.Any("salt", hashSalt.Salt))
-		log.Info("password", slog.Any("password", password))
+		fmt.Println("passDB: ", password)
 
 		reg, err := register.Register(req.Login, password, req.Gender)
 		if errors.Is(err, storage.ErrLoginNotFound) {
