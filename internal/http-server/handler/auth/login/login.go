@@ -33,10 +33,11 @@ type Login interface {
 func New(log *slog.Logger, logins Login) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		session.InitGlobalSession()
+		var ctx = r.Context()
 
 		const op = "handler.auth.login.New"
 		const COOKIE_NAME = "sessionId"
+
 		log = log.With(
 			slog.String("op", op),
 			slog.String("request_id", middleware.GetReqID(r.Context())),
@@ -93,14 +94,16 @@ func New(log *slog.Logger, logins Login) http.HandlerFunc {
 			render.JSON(w, r, resp.Error("authorization error"))
 			return
 		}
+
 		log.Info("userID", slog.Any(" :", userID))
-		sessionId := session.GlobalSession.SetLogin(req.Login, userID)
+		sessionId := session.Redis.SaveSession(ctx, req.Login, userID)
 		log.Info("sessionId set", slog.String("sessionId", sessionId))
 		cookie := &http.Cookie{
-			Name:    COOKIE_NAME,
-			Domain:  "tailly.ru",
-			Value:   sessionId,
-			Expires: time.Now().Add(5 * time.Minute),
+			Name:     COOKIE_NAME,
+			Domain:   "tailly.ru",
+			Value:    sessionId,
+			Expires:  time.Now().Add(5 * time.Minute),
+			HttpOnly: true,
 		}
 		http.SetCookie(w, cookie)
 		log.Info("cookie set", slog.String("cookie", cookie.Value))

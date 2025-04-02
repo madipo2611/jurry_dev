@@ -11,6 +11,7 @@ type Config struct {
 	Env         string `yaml:"env" env-default:"local"`
 	StoragePath string `yaml:"storage_path"`
 	PS          string `yaml:"ps" env-required:"true"`
+	RedisAddr   string `yaml:"redisAddr" env-required:"true"`
 	HTTPServer  `yaml:"http_server"`
 }
 
