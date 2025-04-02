@@ -7,7 +7,6 @@ import (
 	"github.com/go-chi/render"
 	resp "jurry_dev/internal/lib/api/response"
 	"jurry_dev/internal/lib/logger/sl"
-	"jurry_dev/internal/lib/session"
 	"jurry_dev/internal/lib/utils"
 	_ "jurry_dev/internal/storage"
 	"jurry_dev/internal/storage/sqlite"
@@ -19,8 +18,9 @@ import (
 )
 
 type Request struct {
-	Text  string `json:"text"`
-	Image string `json:"image"`
+	Text   string `json:"text"`
+	Image  string `json:"image"`
+	UserID int    `json:"userID"`
 }
 
 type Response struct {
@@ -33,7 +33,6 @@ type AddPost interface {
 
 func New(log *slog.Logger, addPost *sqlite.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
 
 		const op = "handler.posts.addPost.New"
 		const COOKIE_NAME = "sessionId"
@@ -51,15 +50,6 @@ func New(log *slog.Logger, addPost *sqlite.Storage) http.HandlerFunc {
 			req.Image = strings.TrimPrefix(req.Image, "data:image/jpeg;base64,")
 		}
 
-		cookie, _ := r.Cookie(COOKIE_NAME)
-		sessionId := cookie.Value
-		data, err := session.Redis.LoadSession(ctx, sessionId)
-		if err != nil {
-			log.Error("Ошибка получения данных из сессии:", sl.Err(err))
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
 		imgBase64, err := base64.StdEncoding.DecodeString(req.Image)
 		if err != nil {
 			log.Error("failed to decode image base64", op, sl.Err(err))
@@ -67,11 +57,10 @@ func New(log *slog.Logger, addPost *sqlite.Storage) http.HandlerFunc {
 			render.JSON(w, r, resp.Error("failed to decode image"))
 			return
 		}
-		log.Info("userID", slog.Any("serID :", data.UserID))
 		randName := utils.GenerateId()
 		currentDate := time.Now().Format("2006-01-02")
 
-		upPath := fmt.Sprintf("./uploads/%s/%d", currentDate, data.UserID)
+		upPath := fmt.Sprintf("./uploads/%s/%d", currentDate, req.UserID)
 
 		err = os.MkdirAll(upPath, os.ModePerm)
 		if err != nil {
@@ -91,7 +80,7 @@ func New(log *slog.Logger, addPost *sqlite.Storage) http.HandlerFunc {
 			return
 		}
 
-		reg, err := addPost.AddPost(req.Text, fileName, data.UserID)
+		reg, err := addPost.AddPost(req.Text, fileName, req.UserID)
 		if err != nil {
 			log.Error("Post not created", sl.Err(err))
 			w.WriteHeader(http.StatusBadGateway)
