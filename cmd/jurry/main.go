@@ -48,7 +48,7 @@ func main() {
 	router.Post("/api/login", login.New(log, storage))
 	router.Post("/api/register", register.New(log, storage))
 	router.Post("/api/post", addPost.New(log, storage))
-	router.Post("/api/checkauth", checkauth.New(log))
+	router.Get("/api/checkauth", checkauth.New(log))
 	router.Post("/api/logout", logout.New(log))
 
 	log.Info("starting server", slog.String("address", cfg.Address))

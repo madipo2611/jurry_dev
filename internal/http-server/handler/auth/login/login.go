@@ -24,6 +24,7 @@ type Request struct {
 
 type Response struct {
 	resp.Response
+	UserID int `json:"userID"`
 }
 
 type Login interface {
@@ -104,15 +105,17 @@ func New(log *slog.Logger, logins Login) http.HandlerFunc {
 			Value:    sessionId,
 			Expires:  time.Now().Add(5 * time.Minute),
 			HttpOnly: true,
+			Path:     "/",
 		}
 		http.SetCookie(w, cookie)
 		log.Info("cookie set", slog.String("cookie", cookie.Value))
-		responseOK(w, r)
+		responseOK(w, r, userID)
 	}
 }
 
-func responseOK(w http.ResponseWriter, r *http.Request) {
+func responseOK(w http.ResponseWriter, r *http.Request, userID int) {
 	render.JSON(w, r, Response{
 		Response: resp.OK(),
+		UserID:   userID,
 	})
 }

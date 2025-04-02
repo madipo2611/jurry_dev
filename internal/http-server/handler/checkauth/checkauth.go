@@ -11,6 +11,7 @@ import (
 
 type Response struct {
 	resp.Response
+	UserID int `json:"userID"`
 }
 
 func New(log *slog.Logger) http.HandlerFunc {
@@ -34,12 +35,13 @@ func New(log *slog.Logger) http.HandlerFunc {
 			return
 		}
 
-		responseOK(w, r)
+		responseOK(w, r, data.UserID)
 	}
 }
 
-func responseOK(w http.ResponseWriter, r *http.Request) {
+func responseOK(w http.ResponseWriter, r *http.Request, userID int) {
 	render.JSON(w, r, Response{
 		Response: resp.OK(),
+		UserID:   userID,
 	})
 }
