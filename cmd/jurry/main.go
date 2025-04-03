@@ -10,6 +10,7 @@ import (
 	"jurry_dev/internal/http-server/handler/checkauth"
 	"jurry_dev/internal/http-server/handler/logout"
 	"jurry_dev/internal/http-server/handler/posts/addPost"
+	"jurry_dev/internal/http-server/handler/posts/getposts"
 	"jurry_dev/internal/lib/logger/sl"
 	"jurry_dev/internal/storage/sqlite"
 	"log/slog"
@@ -45,11 +46,15 @@ func main() {
 	router.Use(middleware.URLFormat)
 	router.Use(corsMiddleware)
 
+	router.Handle("/uploads/*", http.StripPrefix("/uploads/",
+		http.FileServer(http.Dir("./uploads"))))
+
 	router.Post("/api/login", login.New(log, storage))
 	router.Post("/api/register", register.New(log, storage))
 	router.Post("/api/post", addPost.New(log, storage))
 	router.Get("/api/checkauth", checkauth.New(log))
 	router.Post("/api/logout", logout.New(log))
+	router.Get("/api/posts", getposts.New(log, storage))
 
 	log.Info("starting server", slog.String("address", cfg.Address))
 

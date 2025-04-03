@@ -7,10 +7,20 @@ import (
 	_ "github.com/jackc/pgx/v4/stdlib"
 	"jurry_dev/internal/storage"
 	_ "modernc.org/sqlite"
+	"time"
 )
 
 type Storage struct {
 	db *sql.DB
+}
+
+type Posts struct {
+	Id        int
+	UserID    int
+	Image     string
+	Text      string
+	Likes     int
+	CreatedAt time.Time
 }
 
 func New(ps string) (*Storage, error) {
@@ -36,6 +46,7 @@ func (s *Storage) Login(login string) (string, int, error) {
 	if err != nil {
 		return "", 0, fmt.Errorf("%s: %w", op, err)
 	}
+	defer stmt.Close()
 	var dbPass string
 	var userID int
 
@@ -59,6 +70,7 @@ func (s *Storage) Register(login string, password string, gender string) (bool, 
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
+	defer stmt.Close()
 	_, err = stmt.Exec(login, password, gender)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", op, err)
@@ -74,9 +86,30 @@ func (s *Storage) AddPost(text string, image string, user int) (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
+	defer stmt.Close()
 	_, err = stmt.Exec(text, image, user)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
 	return true, nil
+}
+
+func (s *Storage) GetPost(offset, limit int) ([]Posts, error) {
+	const op = "storage.sqlite.GetPost"
+
+	stmt, err := s.db.Query("SELECT * FROM posts ORDER BY created_at DESC OFFSET $1 LIMIT $2", offset, limit)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	defer stmt.Close()
+	var data []Posts
+	for stmt.Next() {
+		var post Posts
+		if err := stmt.Scan(&post.Id, &post.UserID, &post.Image, &post.Text, &post.Likes, &post.CreatedAt); err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		data = append(data, post)
+		return data, nil
+	}
+	return data, nil
 }

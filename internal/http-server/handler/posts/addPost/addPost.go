@@ -14,7 +14,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"time"
 )
 
 type Request struct {
@@ -58,9 +57,8 @@ func New(log *slog.Logger, addPost *sqlite.Storage) http.HandlerFunc {
 			return
 		}
 		randName := utils.GenerateId()
-		currentDate := time.Now().Format("2006-01-02")
 
-		upPath := fmt.Sprintf("./uploads/%s/%d", currentDate, req.UserID)
+		upPath := fmt.Sprintf("./uploads/posts/%d", req.UserID)
 
 		err = os.MkdirAll(upPath, os.ModePerm)
 		if err != nil {
