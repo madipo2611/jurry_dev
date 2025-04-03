@@ -3,7 +3,6 @@ package getposts
 import (
 	"github.com/go-chi/render"
 	resp "jurry_dev/internal/lib/api/response"
-	_ "jurry_dev/internal/storage"
 	"jurry_dev/internal/storage/sqlite"
 	"log/slog"
 	"net/http"
@@ -12,38 +11,41 @@ import (
 
 type Response struct {
 	resp.Response
-	Data []sqlite.Posts `json:"data"`
+	Data       []sqlite.Posts `json:"data"`
+	TotalCount int            `json:"total_count"`
+	HasMore    bool           `json:"has_more"`
 }
 
 type GetPost interface {
-	GetPost(int, int) ([]sqlite.Posts, error)
+	GetPost(int, int) ([]sqlite.Posts, int, error)
 }
 
 func New(log *slog.Logger, getPost *sqlite.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-
 		const op = "handler.posts.addPost.New"
-		page, _ := strconv.Atoi(r.URL.Query().Get("page")) // номер страницы
-		limit := 5                                         // лимит постов за раз (как в Instagram)
-		offset := (page - 1) * limit
-		if offset < 0 {
-			offset = 0
+
+		page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+		if page < 1 {
+			page = 1
 		}
 
-		data, err := getPost.GetPost(offset, limit)
+		limit := 5
+		offset := (page - 1) * limit
+
+		data, totalCount, err := getPost.GetPost(offset, limit)
 		if err != nil {
-			log.Error("Error get data it is DB:", op, err)
+			log.Error("Error getting data from DB:", op, err)
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
 
-		responseOK(w, r, data)
-	}
-}
+		hasMore := offset+limit < totalCount
 
-func responseOK(w http.ResponseWriter, r *http.Request, data []sqlite.Posts) {
-	render.JSON(w, r, Response{
-		Response: resp.OK(),
-		Data:     data,
-	})
+		render.JSON(w, r, Response{
+			Response:   resp.OK(),
+			Data:       data,
+			TotalCount: totalCount,
+			HasMore:    hasMore,
+		})
+	}
 }

@@ -94,22 +94,35 @@ func (s *Storage) AddPost(text string, image string, user int) (bool, error) {
 	return true, nil
 }
 
-func (s *Storage) GetPost(offset, limit int) ([]Posts, error) {
+func (s *Storage) GetPost(offset, limit int) ([]Posts, int, error) {
 	const op = "storage.sqlite.GetPost"
 
-	stmt, err := s.db.Query("SELECT * FROM posts ORDER BY created_at DESC OFFSET $1 LIMIT $2", offset, limit)
+	// Получаем общее количество постов
+	var totalCount int
+	err := s.db.QueryRow("SELECT COUNT(*) FROM posts").Scan(&totalCount)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, 0, fmt.Errorf("%s: %w", op, err)
+	}
+
+	// Получаем посты с пагинацией
+	stmt, err := s.db.Query("SELECT * FROM posts ORDER BY created_at DESC LIMIT $1 OFFSET $2", limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("%s: %w", op, err)
 	}
 	defer stmt.Close()
+
 	var data []Posts
 	for stmt.Next() {
 		var post Posts
 		if err := stmt.Scan(&post.Id, &post.UserID, &post.Image, &post.Text, &post.Likes, &post.CreatedAt); err != nil {
-			return nil, fmt.Errorf("%s: %w", op, err)
+			return nil, 0, fmt.Errorf("%s: %w", op, err)
 		}
 		data = append(data, post)
-		return data, nil
 	}
-	return data, nil
+
+	if err := stmt.Err(); err != nil {
+		return nil, 0, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return data, totalCount, nil
 }
