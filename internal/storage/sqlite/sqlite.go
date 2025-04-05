@@ -126,3 +126,18 @@ func (s *Storage) GetPost(offset, limit int) ([]Posts, int, error) {
 
 	return data, totalCount, nil
 }
+
+func (s *Storage) DelPost(id int) error {
+	const op = "storage.sqlite.Register"
+
+	stmt, err := s.db.Prepare("DELETE FROM posts WHERE id=$1")
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	defer stmt.Close()
+	_, err = stmt.Exec(id)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	return nil
+}

@@ -10,6 +10,7 @@ import (
 	"jurry_dev/internal/http-server/handler/checkauth"
 	"jurry_dev/internal/http-server/handler/logout"
 	"jurry_dev/internal/http-server/handler/posts/addPost"
+	"jurry_dev/internal/http-server/handler/posts/delpost"
 	"jurry_dev/internal/http-server/handler/posts/getposts"
 	"jurry_dev/internal/lib/logger/sl"
 	"jurry_dev/internal/storage/sqlite"
@@ -55,6 +56,7 @@ func main() {
 	router.Get("/api/checkauth", checkauth.New(log))
 	router.Post("/api/logout", logout.New(log))
 	router.Get("/api/posts", getposts.New(log, storage))
+	router.Post("/api/delpost", delpost.New(log, storage))
 
 	log.Info("starting server", slog.String("address", cfg.Address))
 
