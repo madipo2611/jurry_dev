@@ -101,11 +101,13 @@ func New(log *slog.Logger, logins Login) http.HandlerFunc {
 		log.Info("sessionId set", slog.String("sessionId", sessionId))
 		cookie := &http.Cookie{
 			Name:     COOKIE_NAME,
-			Domain:   "tailly.ru",
 			Value:    sessionId,
-			Expires:  time.Now().Add(5 * time.Minute),
+			Expires:  time.Now().Add(24 * time.Hour),
 			HttpOnly: true,
+			Secure:   true,
 			Path:     "/",
+			SameSite: http.SameSiteLaxMode,
+			Domain:   "tailly.ru",
 		}
 		http.SetCookie(w, cookie)
 		log.Info("cookie set", slog.String("cookie", cookie.Value))

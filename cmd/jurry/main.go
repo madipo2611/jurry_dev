@@ -11,7 +11,7 @@ import (
 	"jurry_dev/internal/http-server/handler/logout"
 	"jurry_dev/internal/http-server/handler/posts/addPost"
 	"jurry_dev/internal/http-server/handler/posts/delpost"
-	"jurry_dev/internal/http-server/handler/posts/getposts"
+	"jurry_dev/internal/http-server/ha
 	"jurry_dev/internal/lib/logger/sl"
 	"jurry_dev/internal/storage/sqlite"
 	"log/slog"
@@ -47,7 +47,7 @@ func main() {
 	router.Use(middleware.URLFormat)
 	router.Use(corsMiddleware)
 
-	router.Handle("/uploads/*", http.StripPrefix("/uploads/",
+	router.Handle("/uploads/", http.StripPrefix("/uploads/",
 		http.FileServer(http.Dir("./uploads"))))
 
 	router.Post("/api/login", login.New(log, storage))
@@ -56,7 +56,7 @@ func main() {
 	router.Get("/api/checkauth", checkauth.New(log))
 	router.Post("/api/logout", logout.New(log))
 	router.Get("/api/posts", getposts.New(log, storage))
-	router.Post("/api/delpost", delpost.New(log, storage))
+	router.Delete("/api/delpost", delpost.New(log, storage))
 
 	log.Info("starting server", slog.String("address", cfg.Address))
 
@@ -96,7 +96,7 @@ func setupLogger(env string) *slog.Logger {
 
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "http://tailly.ru") // Замените на ваш фронтенд
+		w.Header().Set("Access-Control-Allow-Origin", "https://tailly.ru") // Замените на ваш фронтенд
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
