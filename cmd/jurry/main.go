@@ -11,7 +11,9 @@ import (
 	"jurry_dev/internal/http-server/handler/logout"
 	"jurry_dev/internal/http-server/handler/posts/addPost"
 	"jurry_dev/internal/http-server/handler/posts/delpost"
-	"jurry_dev/internal/http-server/ha
+	"jurry_dev/internal/http-server/handler/posts/getposts"
+	"jurry_dev/internal/http-server/handler/user"
+	"jurry_dev/internal/http-server/middleware/authMiddle"
 	"jurry_dev/internal/lib/logger/sl"
 	"jurry_dev/internal/storage/sqlite"
 	"log/slog"
@@ -40,23 +42,30 @@ func main() {
 	_ = storage
 
 	router := chi.NewRouter()
-	router.Use(middleware.RequestID)
-	router.Use(middleware.RealIP)
-	router.Use(middleware.Logger)
-	router.Use(middleware.Recoverer)
-	router.Use(middleware.URLFormat)
-	router.Use(corsMiddleware)
+	// Глобальные middleware (применяются ко ВСЕМ роутам)
+	router.Use(
+		middleware.RequestID,
+		middleware.RealIP,
+		middleware.Logger,
+		middleware.Recoverer,
+		middleware.URLFormat,
+		corsMiddleware,
+	)
 
-	router.Handle("/uploads/", http.StripPrefix("/uploads/",
-		http.FileServer(http.Dir("./uploads"))))
+	router.Post("/login", login.New(log, storage))
+	router.Post("/register", register.New(log, storage))
+	router.Handle("/uploads/*", http.StripPrefix("/uploads/", http.FileServer(http.Dir("./uploads"))))
 
-	router.Post("/api/login", login.New(log, storage))
-	router.Post("/api/register", register.New(log, storage))
-	router.Post("/api/post", addPost.New(log, storage))
-	router.Get("/api/checkauth", checkauth.New(log))
-	router.Post("/api/logout", logout.New(log))
-	router.Get("/api/posts", getposts.New(log, storage))
-	router.Delete("/api/delpost", delpost.New(log, storage))
+	router.Group(func(r chi.Router) {
+		r.Use(authMiddle.AuthMiddleware) // Middleware проверки авторизации
+
+		r.Post("/post", addPost.New(log, storage))
+		r.Get("/checkauth", checkauth.New(log))
+		r.Post("/logout", logout.New(log))
+		r.Get("/posts", getposts.New(log, storage))
+		r.Delete("/delpost", delpost.New(log, storage))
+		r.Get("/user", user.MeHandler(log, storage))
+	})
 
 	log.Info("starting server", slog.String("address", cfg.Address))
 
@@ -96,7 +105,7 @@ func setupLogger(env string) *slog.Logger {
 
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "https://tailly.ru") // Замените на ваш фронтенд
+		w.Header().Set("Access-Control-Allow-Origin", "*") // Замените на ваш фронтенд
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 

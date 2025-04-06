@@ -6,6 +6,7 @@ import (
 	"fmt"
 	_ "github.com/jackc/pgx/v4/stdlib"
 	"jurry_dev/internal/storage"
+	"log/slog"
 	_ "modernc.org/sqlite"
 	"time"
 )
@@ -21,6 +22,22 @@ type Posts struct {
 	Text      string
 	Likes     int
 	CreatedAt time.Time
+}
+
+type User struct {
+	Id                   int
+	Name                 string
+	Login                string
+	Balans               int
+	Status               string
+	Role                 string
+	Last_seen            time.Time
+	Gender               string
+	Language             string
+	Active_status_online bool
+	Posts_privacy        int
+	Allow_dm             int
+	Allow_comments       int
 }
 
 func New(ps string) (*Storage, error) {
@@ -140,4 +157,28 @@ func (s *Storage) DelPost(id int) error {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	return nil
+}
+
+func (s *Storage) GetUser(userID int) (User, error) {
+	const op = "storage.sqlite.GetUser"
+
+	stmt, err := s.db.Prepare("SELECT id, name, login, balans, status, role, last_seen, gender, language, active_status_online, posts_privacy, allow_dm, allow_comments FROM users WHERE id = $1;")
+	if err != nil {
+		return User{}, nil
+	}
+	defer stmt.Close()
+
+	var data User
+	slog.Info("Передает userID в БД: ", userID)
+	err = stmt.QueryRow(userID).Scan(&data.Id, &data.Name, &data.Login, &data.Balans, &data.Status, &data.Role, &data.Last_seen, &data.Gender, &data.Language, &data.Active_status_online, &data.Posts_privacy, &data.Allow_dm, &data.Allow_comments)
+	if errors.Is(err, sql.ErrNoRows) {
+		slog.Error("Ошибка запроса в БД:", err)
+		return User{}, nil
+	}
+	if err != nil {
+		slog.Error("Ошибка получения данных из БД:", err)
+		return User{}, nil
+	}
+	slog.Info("Получаем id из БД: ", data.Id)
+	return data, nil
 }

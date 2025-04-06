@@ -1,10 +1,9 @@
 package checkauth
 
 import (
-	"fmt"
 	"github.com/go-chi/render"
+	"jurry_dev/internal/http-server/middleware/authMiddle"
 	resp "jurry_dev/internal/lib/api/response"
-	"jurry_dev/internal/lib/session"
 	"log/slog"
 	"net/http"
 )
@@ -16,26 +15,14 @@ type Response struct {
 
 func New(log *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		const COOKIE_NAME = "sessionId"
-		ctx := r.Context()
-		cookie, err := r.Cookie(COOKIE_NAME)
-		if err != nil {
-			fmt.Println("Не удалось получить куку с именем:", COOKIE_NAME)
+		userID, ok := r.Context().Value(authMiddle.UserIDKey).(int)
+		slog.Info("Получаем userID из контекста, checkauth: ", userID)
+		if !ok {
 			w.WriteHeader(http.StatusUnauthorized)
-			render.JSON(w, r, resp.Error("Кука не найдена. Пользователь не авторизован."))
+			render.JSON(w, r, resp.Error("User not authenticated"))
 			return
 		}
-		sessionId := cookie.Value
-
-		data, _ := session.Redis.LoadSession(ctx, sessionId)
-		if data == nil {
-			fmt.Println("Сессия не найдена:", data)
-			w.WriteHeader(http.StatusUnauthorized)
-			render.JSON(w, r, resp.Error("Пользователь не авторизован"))
-			return
-		}
-
-		responseOK(w, r, data.UserID)
+		responseOK(w, r, userID)
 	}
 }
 

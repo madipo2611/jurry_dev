@@ -107,7 +107,7 @@ func New(log *slog.Logger, logins Login) http.HandlerFunc {
 			Secure:   true,
 			Path:     "/",
 			SameSite: http.SameSiteLaxMode,
-			Domain:   "tailly.ru",
+			//Domain:   "tailly.ru",
 		}
 		http.SetCookie(w, cookie)
 		log.Info("cookie set", slog.String("cookie", cookie.Value))
