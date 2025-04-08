@@ -60,7 +60,7 @@ func main() {
 		r.Use(authMiddle.AuthMiddleware) // Middleware проверки авторизации
 
 		r.Post("/post", addPost.New(log, storage))
-		r.Get("/checkauth", checkauth.New(log))
+		r.Get("/checkauth", checkauth.New(log, storage))
 		r.Post("/logout", logout.New(log))
 		r.Get("/posts", getposts.New(log, storage))
 		r.Delete("/delpost", delpost.New(log, storage))

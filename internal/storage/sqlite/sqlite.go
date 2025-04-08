@@ -16,12 +16,14 @@ type Storage struct {
 }
 
 type Posts struct {
-	Id        int
-	UserID    int
-	Image     string
-	Text      string
-	Likes     int
-	CreatedAt time.Time
+	Id             int
+	UserID         int
+	Image          string
+	Text           string
+	Likes          int
+	CreatedAt      time.Time
+	Comments_count int
+	Privacy_level  int
 }
 
 type User struct {
@@ -38,6 +40,7 @@ type User struct {
 	Posts_privacy        int
 	Allow_dm             int
 	Allow_comments       int
+	Email                string
 }
 
 func New(ps string) (*Storage, error) {
@@ -131,7 +134,7 @@ func (s *Storage) GetPost(offset, limit int) ([]Posts, int, error) {
 	var data []Posts
 	for stmt.Next() {
 		var post Posts
-		if err := stmt.Scan(&post.Id, &post.UserID, &post.Image, &post.Text, &post.Likes, &post.CreatedAt); err != nil {
+		if err := stmt.Scan(&post.Id, &post.UserID, &post.Image, &post.Text, &post.Likes, &post.CreatedAt, &post.Comments_count, &post.Privacy_level); err != nil {
 			return nil, 0, fmt.Errorf("%s: %w", op, err)
 		}
 		data = append(data, post)
@@ -162,7 +165,7 @@ func (s *Storage) DelPost(id int) error {
 func (s *Storage) GetUser(userID int) (User, error) {
 	const op = "storage.sqlite.GetUser"
 
-	stmt, err := s.db.Prepare("SELECT id, name, login, balans, status, role, last_seen, gender, language, active_status_online, posts_privacy, allow_dm, allow_comments FROM users WHERE id = $1;")
+	stmt, err := s.db.Prepare("SELECT id, name, login, balans, status, role, last_seen, gender, language, active_status_online, posts_privacy, allow_dm, allow_comments, email FROM users WHERE id = $1;")
 	if err != nil {
 		return User{}, nil
 	}
@@ -170,7 +173,7 @@ func (s *Storage) GetUser(userID int) (User, error) {
 
 	var data User
 	slog.Info("Передает userID в БД: ", userID)
-	err = stmt.QueryRow(userID).Scan(&data.Id, &data.Name, &data.Login, &data.Balans, &data.Status, &data.Role, &data.Last_seen, &data.Gender, &data.Language, &data.Active_status_online, &data.Posts_privacy, &data.Allow_dm, &data.Allow_comments)
+	err = stmt.QueryRow(userID).Scan(&data.Id, &data.Name, &data.Login, &data.Balans, &data.Status, &data.Role, &data.Last_seen, &data.Gender, &data.Language, &data.Active_status_online, &data.Posts_privacy, &data.Allow_dm, &data.Allow_comments, &data.Email)
 	if errors.Is(err, sql.ErrNoRows) {
 		slog.Error("Ошибка запроса в БД:", err)
 		return User{}, nil
