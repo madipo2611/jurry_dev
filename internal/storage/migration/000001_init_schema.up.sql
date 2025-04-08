@@ -6,14 +6,14 @@ CREATE TABLE users (
                        date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                        balans INTEGER NOT NULL DEFAULT 0,
                        status VARCHAR(30) NOT NULL DEFAULT 'active',
-                       role VARCHAR(10) NOT NULL DEFAULT 'normal', -- Изменено с enum на varchar
+                       role VARCHAR(10) NOT NULL DEFAULT 'normal',
                        last_seen TIMESTAMP NULL DEFAULT NULL,
                        gender VARCHAR(50) NOT NULL,
                        language VARCHAR(10) NOT NULL DEFAULT 'en',
-                       active_status_online BOOLEAN NOT NULL DEFAULT TRUE, -- Изменено с enum на boolean
-                       posts_privacy SMALLINT NOT NULL DEFAULT 1, -- Изменено с tinyint на smallint
-                       allow_dm SMALLINT NOT NULL DEFAULT 1, -- Изменено с tinyint на smallint
-                       allow_comments SMALLINT NOT NULL DEFAULT 1 -- Изменено с tinyint на smallint
+                       active_status_online BOOLEAN NOT NULL DEFAULT TRUE,
+                       posts_privacy SMALLINT NOT NULL DEFAULT 1,
+                       allow_dm SMALLINT NOT NULL DEFAULT 1,
+                       allow_comments SMALLINT NOT NULL DEFAULT 1
 );
 
 CREATE TABLE posts (
@@ -23,7 +23,7 @@ CREATE TABLE posts (
                        text VARCHAR(150) NOT NULL UNIQUE,
                        likes INTEGER NOT NULL DEFAULT 0,
                        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                       FOREIGN KEY (userID) REFERENCES users(id) -- Добавление внешнего ключа здесь
+                       FOREIGN KEY (userID) REFERENCES users(id)
 );
 
 CREATE INDEX ON posts (userID);
